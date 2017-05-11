@@ -7,15 +7,16 @@ import shutil
 
 join = osp.join
 parser = OptionParser()
-parser.add_option("-k","--kubeconfig",help="kubeconfig file")
-parser.add_option("-r","--repo",help="Job definition git Repository")
+parser.add_option("-k","--apikey",help="apikey")
+parser.add_option("-h","--host",help="api host")
+parser.add_option("-i","--image",help="container image")
+
 
 (options, args) = parser.parse_args()
 
-print("kubeconfig "+options.kubeconfig)
-
-config.load_kube_config(config_file=options.kubeconfig)
-
+#config.load_kube_config(config_file=options.kubeconfig)
+client.configuration.api_key['authorization'] = options.apikey
+client.configuration.host = options.host
 v1 = client.CoreV1Api()
 v1Batch = client.BatchV1Api()
 
@@ -38,9 +39,9 @@ job.kind = "Job"
 job_meta.name = "p1"
 job.metadata = job_meta
 
-#containers spec
+#containers spec 172.30.129.159:5000/testjob/worker
 pod_spec_container.name = "c1"
-pod_spec_container.image = "172.30.129.159:5000/testjob/worker"
+pod_spec_container.image = options.image
 
 #job spec
 pod_meta.name = "j1"
@@ -66,6 +67,13 @@ job.spec = job_spec
 #job_def = open("./repotmp/job.yaml")
 
 v1Batch.create_namespaced_job("testjob",job)
+
+res_job = models.V1JobStatus
+
+res_job = v1Batch.read_namespaced_job_status(job_meta.name,"testjob",pretty=True)
+
+print(res_job)
+
 
 print("Listing pods with their IPs:")
 ret = v1.list_pod_for_all_namespaces(watch=False)
